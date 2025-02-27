@@ -1,0 +1,7 @@
+.history
+node_modules
+.env.development
+.env.production
+mochawesome-report/*
+
+external_resources/public/*
