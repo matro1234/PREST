@@ -1,16 +1,11 @@
 import { Router } from "express";
 import {
+  createModelForm,
   createEvaluador,
-  getEvaluadorById,
-  getEvaluadores,
-  deleteEvaluador,
-  updateEvaluador,
 } from "../controllers/evaluador.controller";
+import { isAuthenticated } from '../middlewares/index'
 
 export default (router: Router) => {
-  router.get("/evaluador", getEvaluadores);
-  router.get("/evaluador/:id_evaluador", getEvaluadorById);
+  router.post("/evaluador/model/:id_evaluador", isAuthenticated, createModelForm);
   router.post("/evaluador", createEvaluador);
-  router.delete("/evaluador/:id_evaluador", deleteEvaluador);
-  router.put("/evaluador/:id_evaluador", updateEvaluador);
 };

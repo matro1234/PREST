@@ -5,74 +5,136 @@ import {
   getEvaluadoSrv,
   deleteEvaluadoSrv,
   updateEvaluadoSrv,
+  evaluadorEvaluadoSrv,
+  getEvaluadosForRespSrv,
 } from "../services/evaluado.service";
-export const createEvaluado = async (
+import { getTipoRespSrv } from "../services/respuesta.service";
+import { linkEvaluadoToRespuestaSrv } from "../services/evaluador.service";
+
+export const getRespTipo = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name_evaluado, rol, carrera } = req.body;
+  const { id_evaluado } = req.body;
   try {
-    if (
-      typeof name_evaluado === "string" &&
-      typeof rol === "string" &&
-      typeof carrera === "string"
-    ) {
-      const evaluado = await createEvaluadoSrv(
-        name_evaluado,
-        rol,
-        carrera
-      );
-      res.status(201).json(evaluado);
-    }
+    const apostol = await getTipoRespSrv(id_evaluado, "apostol")||[];
+    const reen = await getTipoRespSrv(id_evaluado, "reen")||[];
+    const mercenario = await getTipoRespSrv(id_evaluado, "mercenario")||[];
+    const terrorista = await getTipoRespSrv(id_evaluado, "terrorista")||[];
+    const result = { apostol, reen, mercenario, terrorista };
+    res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Error creating Evaluado" });
   }
 };
 
-export const getEvaluadoById = async (req: Request, res: Response) => {
+export const getEvaluadosForResp = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { texto } = req.body;
   try {
-    const { id_evaluado } = req.params;
-    const evaluado = await getEvaluadoByIdSrv(id_evaluado);
-    if (!evaluado) return res.status(404).json({ error: "Evaluado not found" });
-    res.json(evaluado);
+    const result = await getEvaluadosForRespSrv(texto)
+    res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ error: "Error fetching Evaluado" });
+    res.status(500).json({ error: "Error al encontrar evaluados" });
   }
 };
 
 export const getEvaluados = async (req: Request, res: Response) => {
+  const { search, carrera, rol } = req.query; // Obtener filtros de la consulta
+
   try {
-    const evaluado = await getEvaluadoSrv();
-    if (!evaluado) return res.status(404).json({ error: "Evaluado not found" });
-    res.json(evaluado);
+    // Llamamos al servicio pasándole los filtros
+    const evaluados = await getEvaluadoSrv(
+      search as string,
+      carrera as string,
+      rol as string
+    );
+
+    if (!evaluados || evaluados.length === 0) {
+      return res.status(404).json({ error: "No evaluados found" });
+    }
+
+    res.json(evaluados);
   } catch (error) {
-    res.status(500).json({ error: "Error fetching Evaluado" });
+    res.status(500).json({ error: "Error fetching Evaluados" });
   }
 };
 
-export const updateEvaluado = async (req: Request, res: Response) => {
-  try {
-    const { id_evaluado } = req.params;
-    const { name_evaluado, rol, carrera } = req.body;
-    const evaluado = await updateEvaluadoSrv({
-      id_evaluado,
-      name_evaluado,
-      rol,
-      carrera,
-    });
-    if (!evaluado) return res.status(404).json({ error: "Evaluado not found" });
-    res.json(evaluado);
-  } catch (error) {
-    res.status(500).json({ error: "Error fetching Evaluado" });
-  }
-};
+// export const getEvaluadoById = async (req: Request, res: Response) => {
+//   try {
+//     const { id_evaluado } = req.params;
+//     const evaluado = await getEvaluadoByIdSrv(id_evaluado);
+//     if (!evaluado) return res.status(404).json({ error: "Evaluado not found" });
+//     res.json(evaluado);
+//   } catch (error) {
+//     res.status(500).json({ error: "Error fetching Evaluado" });
+//   }
+// };
 
-export const deleteEvaluado = async (req: Request, res: Response) => {
-  const { id_evaluado } = req.params;
+// export const updateEvaluado = async (req: Request, res: Response) => {
+//   try {
+//     const { id_evaluado } = req.params;
+//     const { name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera } = req.body;
+//     const evaluado = await updateEvaluadoSrv({
+//       id_evaluado,
+//       name_evaluado,
+//       telefono,
+//       genero,
+//       estado_cibil,
+//       email_institucional,
+//       rol,
+//       carrera,
+//     });
+//     if (!evaluado) return res.status(404).json({ error: "Evaluado not found" });
+//     res.json(evaluado);
+//   } catch (error) {
+//     res.status(500).json({ error: "Error fetching Evaluado" });
+//   }
+// };
+
+// export const deleteEvaluado = async (req: Request, res: Response) => {
+//   const { id_evaluado } = req.params;
+//   try {
+//     await deleteEvaluadoSrv(id_evaluado);
+//     res.json({ message: "Evaluado deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ error: "Error deleting Evaluado" });
+//   }
+// };
+
+export const createEvaluadoRespuesta = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id_evaluador } = req.params;
+  const { evaluado, text_respuestas } = req.body; //evaluado:{name_eva}
+  const { name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera } = evaluado;
   try {
-    await deleteEvaluadoSrv(id_evaluado);
-    res.json({ message: "Evaluado deleted successfully" });
+    const newEvaluado = await createEvaluadoSrv(name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera);
+    if (newEvaluado) {
+      const evaluadorEvaluado = await evaluadorEvaluadoSrv(
+        id_evaluador,
+        newEvaluado
+      );
+      if (evaluadorEvaluado) {
+        const result = await Promise.all(
+          text_respuestas.map((text: string) =>
+            linkEvaluadoToRespuestaSrv(name_evaluado as string, text)
+          )
+        );
+        if (result) {
+          return res.status(201).json({mensaje:"El evaluado se registro correctamente"});
+        }
+        return res.status(400).json({mensaje:"no se logro crear el evaluado"});
+      } else {
+        return res.status(400).json({mensaje:"no se logro crear el evaluado"});
+      }
+    }else{
+      return res.status(400).json({mensaje:"no se logro crear el evaluado"});
+    }
   } catch (error) {
-    res.status(500).json({ error: "Error deleting Evaluado" });
+    return res.status(500).json({ error: "Error creating Evaluador" });
   }
 };

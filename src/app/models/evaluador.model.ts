@@ -1,111 +1,151 @@
-import { Session } from "neo4j-driver";
+import { Session, Driver } from "neo4j-driver";
+import Neo4jDatabase from "../../database/database";
 
 export interface Evaluador {
   id_evaluador: string;
-  name_evaluador: string;
-  rol: string;
-  area: string;
+  name_evaluador?: string;
+  password?: string;
+  email?: string;
+  rol?: string;
+  area?: string;
+  sessionToken?: string;
+  salt?: string;
 }
 
 export class EvaluadorModel {
-  private readonly session: Session;
+  private readonly driver: Driver;
 
-  public constructor(sess: Session) {
-    this.session = sess;
+  public constructor(driver: Neo4jDatabase) {
+    this.driver = driver.getDriver();
   }
 
-  async createEvaluador(evaluador: Evaluador) {
-    const query = `
-            CREATE (
-                e:Evaluador {
-                  id_evaluador: $id_evaluador,
-                  name_evaluador: $name_evaluador,
-                  rol: $rol,
-                  area: $area
-                }
-              )
-              RETURN e
-        `;
+  async getEvaluadorByToken(token: string) {
+    const session = this.driver.session();
+    const query = `MATCH (e:Evaluador {sessionToken: $token}) RETURN e`;
     try {
-      const result = await this.session.run(query, evaluador);
-      if (result.records.length) {
-        return result.records[0].get("e").properties;
-      } else {
-        return undefined;
-      }
-    } catch (error: any) {
-      if (error.code === "Neo.ClientError.Schema.ConstraintValidationFailed") {
-        return null;
-      }
+      const result = await session.run(query, { token });
+      return result.records.length > 0 ? result.records[0].get("e").properties : null;
+    } catch (error) {
+      console.error("Error al obtener evaluador por token:", error);
       throw error;
+    } finally {
+      session.close();
+    }
+  }
+
+  async getEvaluadorByemail(email: string) {
+    const session = this.driver.session();
+    const query = `MATCH (e:Evaluador {email: $email}) RETURN e`;
+    try {
+      const result = await session.run(query, { email });
+      return result.records.length > 0 ? result.records[0].get("e").properties : null;
+    } catch (error) {
+      console.error("Error al obtener evaluador por email:", error);
+      throw error;
+    } finally {
+      session.close();
     }
   }
 
   async getEvaluadorById(id_evaluador: string) {
-    const query = `
-            MATCH (e:Evaluador {id_evaluador: $id_evaluador})
-            RETURN e
-        `;
+    const session = this.driver.session();
+    const query = `MATCH (e:Evaluador {id_evaluador: $id_evaluador}) RETURN e`;
     try {
-      const result = await this.session.run(query, { id_evaluador });
-      if (result.records.length) {
-        return result.records[0].get("e").properties;
-      } else {
-        return undefined;
-      }
-    } catch (error: any) {
-      console.log(error);
+      const result = await session.run(query, { id_evaluador });
+      return result.records.length > 0 ? result.records[0].get("e").properties : null;
+    } catch (error) {
+      console.error("Error al obtener evaluador por ID:", error);
+      throw error;
+    } finally {
+      session.close();
     }
   }
 
-  async getEvaluadores() {
-    const query = `MATCH (e:Evaluador) RETURN e`;
-
+  async createEvaluador(evaluador: Evaluador) {
+    const session = this.driver.session();
+    const query = `
+      MERGE (e:Evaluador {
+        id_evaluador: $id_evaluador,
+        name_evaluador: $name_evaluador,
+        password: $password,
+        email: $email,
+        sessionToken: $sessionToken,
+        salt: $salt,
+        rol: $rol,
+        area: $area
+      }) RETURN e
+    `;
     try {
-      const result = await this.session.run(query);
-      if (result.records.length === 0) {
-        return undefined;
-      } else {
-        const evaluadores: Evaluador[] = result.records.map(
-          (evaluador) => evaluador.get("e").properties
-        );
-        return evaluadores;
-      }
+      const result = await session.run(query, evaluador);
+      return result.records.length > 0 ? result.records[0].get("e").properties : null;
     } catch (error) {
-      console.log(error);
+      console.error("Error al crear evaluador:", error);
+      throw error;
+    } finally {
+      session.close();
     }
   }
 
-  async updateEvaluador(new_evaluador: Evaluador) {
+  async updateEvaluador(evaluador: Evaluador) {
+    const session = this.driver.session();
     const query = `
-            MATCH (e:Evaluador {id_evaluador: $id_evaluador})
-            SET e.name_evaluador = $name_evaluador
-            SET e.rol = $rol
-            SET e.area = $area
-            RETURN e
-        `;
-
+      MATCH (e:Evaluador {id_evaluador: $id_evaluador})
+      SET e.sessionToken = $sessionToken
+      RETURN e
+    `;
     try {
-      const result = await this.session.run(query, {
-        id_evaluador: new_evaluador.id_evaluador,
-        name_evaluador: new_evaluador.name_evaluador,
-        rol: new_evaluador.rol,
-        area: new_evaluador.area
-      });
-      return result.records[0].get("e").properties;
+      const result = await session.run(query, evaluador);
+      return result.records.length > 0 ? result.records[0].get("e").properties : null;
     } catch (error) {
-      console.log(error);
+      console.error("Error al actualizar evaluador:", error);
+      throw error;
+    } finally {
+      session.close();
     }
   }
 
   async deleteEvaluador(id_evaluador: string) {
+    const session = this.driver.session();
     const query = `MATCH (e:Evaluador {id_evaluador: $id_evaluador}) DETACH DELETE e`;
-
     try {
-      await this.session.run(query, { id_evaluador });
-      return { message: "Evaluador deleted successfully" };
+      await session.run(query, { id_evaluador });
+      return { message: "Evaluador eliminado con éxito" };
     } catch (error) {
-      console.log(error);
+      console.error("Error al eliminar evaluador:", error);
+      throw error;
+    } finally {
+      session.close();
+    }
+  }
+
+  async getEvaluadores() {
+    const session = this.driver.session();
+    const query = `MATCH (e:Evaluador) RETURN e`;
+    try {
+      const result = await session.run(query);
+      return result.records.map((record: any) => record.get("e").properties);
+    } catch (error) {
+      console.error("Error al obtener evaluadores:", error);
+      throw error;
+    } finally {
+      session.close();
+    }
+  }
+  async linkEvaluadorToEvaluado(id_evaluador: string, id_evaluado: string) {
+    const session = this.driver.session();
+    const query = `
+      MATCH (e:Evaluador {id_evaluador: $id_evaluador}),
+            (r:Evaluado {id_evaluado: $id_evaluado})
+      MERGE (e)-[:RESPONDIO]->(r)
+      RETURN e, r
+    `;
+    try {
+      const result = await session.run(query, { id_evaluador, id_evaluado });
+      return result.records.length > 0;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      session.close();
     }
   }
 }

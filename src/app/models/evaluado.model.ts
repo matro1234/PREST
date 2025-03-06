@@ -1,108 +1,175 @@
-import { Session } from "neo4j-driver";
+import { Driver, Session } from "neo4j-driver";
+import Neo4jDatabase from "../../database/database";
+
 export interface Evaluado {
   id_evaluado: string;
   name_evaluado: string;
+  telefono: number;
+  genero: string;
+  estado_cibil: string;
+  email_institucional: string;
   rol: string;
   carrera: string;
 }
+
 export class EvaluadoModel {
-  private readonly session: Session;
-  public constructor(sess: Session) {
-    this.session = sess;
+  private readonly driver: Driver;
+
+  public constructor(driver: Neo4jDatabase) {
+    this.driver = driver.getDriver();
   }
+
+  // Método para crear un evaluado
   async createEvaluado(evaluado: Evaluado) {
     const query = `
-            create (
-                s:Evaluado {
-                  id_evaluado: $id_evaluado,
-                  name_evaluado: $name_evaluado,
-                  rol: $rol,
-                  carrera: $carrera
-                }
-              )
-              return s
-        `;
+                    MERGE (s:Evaluado {email_institucional: $email_institucional})
+                    ON CREATE SET s.id_evaluado = $id_evaluado,
+                                  s.name_evaluado = $name_evaluado,
+                                  s.telefono = $telefono,
+                                  s.genero = $genero,
+                                  s.estado_cibil = $estado_cibil,
+                                  s.rol = $rol,
+                                  s.carrera = $carrera
+                    RETURN s
+`;
+
+    const session: Session = this.driver.session(); // Crear una nueva sesión
+
     try {
-      const result = await this.session.run(query, evaluado);
-      if (result.records.length) {
-        return result.records[0].get("s").properties;
-      } else {
-        return undefined;
-      }
+      const result = await session.run(query, evaluado);
+      return result.records.length
+        ? result.records[0].get("s").properties
+        : undefined;
     } catch (error: any) {
-      if (error.code === "Neo.ClientError.Schema.ConstraintValidationFailed") {
-        return null;
-      }
-      throw error;
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
     }
   }
 
+  // Método para obtener un evaluado por su ID
   async getEvaluadoById(id_evaluado: string) {
     const query = `
-            MATCH (s:Evaluado {id_evaluado: $id_evaluado})
-            RETURN s
-        `;
-    try {
-      const result = await this.session.run(query, { id_evaluado });
-      if (result.records.length) {
-        return result.records[0].get("s").properties;
-      } else {
-        return undefined;
-      }
-    } catch (error: any) {
-      console.log(error);
-    }
-  }
+      MATCH (s:Evaluado {id_evaluado: $id_evaluado})
+      RETURN s
+    `;
 
-  async getEvaluados() {
-    const query = `MATCH (s:Evaluado) RETURN s`;
+    const session: Session = this.driver.session(); // Crear una nueva sesión
 
     try {
-      const result = await this.session.run(query);
-      if (result.records.length === 0) {
-        return undefined;
-      } else {
-        const result2: Evaluado[] = result.records.map(
-          (evaluado) => evaluado.get("s").properties
-        );
-        return result2;
-      }
+      const result = await session.run(query, { id_evaluado });
+      return result.records.length
+        ? result.records[0].get("s").properties
+        : undefined;
     } catch (error) {
-      console.log(error);
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
+    }
+  }
+  async getEvaluadosForResp(texto: string) {
+    const query = `
+      MATCH (e:Evaluado)-[:RESPONDIO]->(r:Respuesta {texto: $texto})
+      RETURN e
+    `;
+
+    const session: Session = this.driver.session(); // Crear una nueva sesión
+
+    try {
+      const result = await session.run(query, { texto });
+      return result.records.length
+        ? result.records.map((evaluado: any) => evaluado.get("e").properties)
+        : undefined;
+    } catch (error) {
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
     }
   }
 
+  // Método para obtener evaluados con filtros opcionales
+  async getEvaluados(search?: string, carrera?: string, rol?: string) {
+    let query = `MATCH (s:Evaluado)`;
+    let conditions: string[] = [];
+    let params: any = {};
+
+    if (search) {
+      conditions.push(
+        `(s.name_evaluado CONTAINS $search OR s.rol CONTAINS $search OR s.carrera CONTAINS $search)`
+      );
+      params.search = search;
+    }
+
+    if (carrera) {
+      conditions.push(`s.carrera = $carrera`);
+      params.carrera = carrera;
+    }
+
+    if (rol) {
+      conditions.push(`s.rol = $rol`);
+      params.rol = rol;
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(" AND ");
+    }
+
+    query += ` RETURN s`;
+
+    const session: Session = this.driver.session(); // Crear una nueva sesión
+
+    try {
+      const result = await session.run(query, params);
+      return result.records.length
+        ? result.records.map((evaluado: any) => evaluado.get("s").properties)
+        : undefined;
+    } catch (error) {
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
+    }
+  }
+
+  // Método para actualizar un evaluado
   async updateEvaluado(new_evaluado: Evaluado) {
     const query = `
-            MATCH (s:Evaluado {id_evaluado: $id_evaluado})
-            SET s.name_evaluado = $name_evaluado
-            SET s.rol = $rol
-            SET s.carrera = $carrera
-            SET s.type = type
-            RETURN u
-        `;
+      MATCH (s:Evaluado {id_evaluado: $id_evaluado})
+      SET s.name_evaluado = $name_evaluado,
+          s.rol = $rol,
+          s.carrera = $carrera
+      RETURN s
+    `;
+
+    const session: Session = this.driver.session(); // Crear una nueva sesión
 
     try {
-      const result = await this.session.run(query, {
+      const result = await session.run(query, {
         id_evaluado: new_evaluado.id_evaluado,
         name_evaluado: new_evaluado.name_evaluado,
         rol: new_evaluado.rol,
-        carrera: new_evaluado.carrera
+        carrera: new_evaluado.carrera,
       });
       return result.records[0].get("s").properties;
     } catch (error) {
-      console.log(error);
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
     }
   }
 
+  // Método para eliminar un evaluado
   async deleteEvaluado(id_evaluado: string) {
-    const query = `MATCH (s:Evaluado {id_evaluado: $id_evaluado}) DETACH DELETE u`;
+    const query = `MATCH (s:Evaluado {id_evaluado: $id_evaluado}) DETACH DELETE s`;
+
+    const session: Session = this.driver.session(); // Crear una nueva sesión
 
     try {
-      await this.session.run(query, { id_evaluado });
-      return { message: "User deleted successfully" };
+      await session.run(query, { id_evaluado });
+      return { message: "Evaluado deleted successfully" };
     } catch (error) {
-      console.log(error);
+      console.log(error); // Imprime el error en consola
+    } finally {
+      await session.close(); // Cerrar la sesión
     }
   }
 }

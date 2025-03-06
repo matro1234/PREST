@@ -1,79 +1,34 @@
 import { Request, Response } from "express";
 import {
   createEvaluadorSrv,
-  getEvaluadorByIdSrv,
-  getEvaluadorSrv,
-  deleteEvaluadorSrv,
-  updateEvaluadorSrv,
 } from "../services/evaluador.service";
+import { createPreguntaSrv } from "../services/pregunta.service";
+import { createRespuestaSrv } from "../services/respuesta.service";
 
-// Crear Evaluador
-export const createEvaluador = async (req: Request, res: Response): Promise<void> => {
-  const { name_evaluador, rol, carrera } = req.body;
+export const createModelForm = async (req: Request, res: Response): Promise<void> => {
+  const { formulario } = req.body; //formulario:[texto:"dsad",categoria:"dads",respuestas:[texto:"dsa",tipologia:"das"]]
   try {
-    if (
-      typeof name_evaluador === "string" &&
-      typeof rol === "string" &&
-      typeof carrera === "string"
-    ) {
-      const evaluador = await createEvaluadorSrv(name_evaluador, rol, carrera);
-      res.status(201).json(evaluador);
-    } else {
-      res.status(400).json({ error: "Invalid data format" });
-    }
+    const newPregunta = await Promise.all(formulario.map(async(pregunta:any)=>{
+      const pregunta1 = await createPreguntaSrv(pregunta.texto,pregunta.categoria);
+      const newRespuestas = await Promise.all(pregunta.respuestas.map((respuesta:any)=>{
+        createRespuestaSrv(respuesta.texto,respuesta.tipologia,pregunta.texto)
+      }));
+    }));
+    const result = {newPregunta}
+    res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Error creating Evaluador" });
   }
 };
 
-// Obtener Evaluador por ID
-export const getEvaluadorById = async (req: Request, res: Response) => {
+export const createEvaluador = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { id_evaluador } = req.params;
-    const evaluador = await getEvaluadorByIdSrv(id_evaluador);
-    if (!evaluador) return res.status(404).json({ error: "Evaluador not found" });
-    res.json(evaluador);
-  } catch (error) {
-    res.status(500).json({ error: "Error fetching Evaluador" });
-  }
-};
+    const {name_evaluador,email,password,rol,area} = req.body;
 
-// Obtener todos los Evaluadores
-export const getEvaluadores = async (req: Request, res: Response) => {
-  try {
-    const evaluadores = await getEvaluadorSrv();
-    if (!evaluadores) return res.status(404).json({ error: "Evaluadores not found" });
-    res.json(evaluadores);
-  } catch (error) {
-    res.status(500).json({ error: "Error fetching Evaluadores" });
-  }
-};
+    const result = await createEvaluadorSrv(name_evaluador,password,email,rol,area)
 
-// Actualizar Evaluador
-export const updateEvaluador = async (req: Request, res: Response) => {
-  try {
-    const { id_evaluador } = req.params;
-    const { name_evaluador, rol, area } = req.body;
-    const evaluador = await updateEvaluadorSrv({
-      id_evaluador,
-      name_evaluador,
-      rol,
-      area,
-    });
-    if (!evaluador) return res.status(404).json({ error: "Evaluador not found" });
-    res.json(evaluador);
-  } catch (error) {
-    res.status(500).json({ error: "Error updating Evaluador" });
-  }
-};
-
-// Eliminar Evaluador
-export const deleteEvaluador = async (req: Request, res: Response) => {
-  const { id_evaluador } = req.params;
-  try {
-    await deleteEvaluadorSrv(id_evaluador);
-    res.json({ message: "Evaluador deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Error deleting Evaluador" });
+    return res.status(201).json({ success: true, result });
+  } catch (error:any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -5,7 +5,7 @@ import { PreguntaModel } from './pregunta.model';
 import { RespuestaModel } from './respuesta.model';
 import { EvaluadorModel } from './evaluador.model'
 
-const session = Database.getInstance().getSession();
+const session = Database.getInstance();
 
 const db = {
   evaluado: new EvaluadoModel(session),
@@ -13,7 +13,6 @@ const db = {
   respuesta: new RespuestaModel(session),
   evaluador: new EvaluadorModel(session),
   observacion: new ObservacionModel(session),
-  // Aquí puedes agregar otros modelos como `missions` y `characters`
 };
 
 export { session };

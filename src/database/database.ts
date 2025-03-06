@@ -8,6 +8,7 @@ export default class Neo4jDatabase {
     private static instance: Neo4jDatabase | undefined;
     private readonly driver: Driver;
 
+    // Constructor privado
     private constructor(config: DatabaseConfig) {
         debug(`Connecting to Neo4j at ${config.neo4jUri}`);
         this.driver = neo4j.driver(
@@ -16,6 +17,7 @@ export default class Neo4jDatabase {
         );
     }
 
+    // Método para obtener la instancia del singleton
     public static getInstance(): Neo4jDatabase {
         if (!Neo4jDatabase.instance) {
             Neo4jDatabase.instance = new Neo4jDatabase(new DatabaseConfig());
@@ -23,29 +25,33 @@ export default class Neo4jDatabase {
         return Neo4jDatabase.instance;
     }
 
+    // Método para conectar, creando una sesión temporal solo para este método
     public async connect(): Promise<void> {
+        const session: Session = this.driver.session(); // Crear nueva sesión aquí
         try {
-            const session: Session = this.driver.session();
             await session.run("RETURN 1");
-            await session.close();
             debug("✅ Connected to Neo4j");
         } catch (error) {
             debug("❌ Error connecting to Neo4j:", error);
             throw error;
+        } finally {
+            await session.close(); // Cerrar la sesión después de usarla
         }
     }
 
+    // Método para cerrar la conexión a la base de datos
     public close(): Promise<void> {
         debug("Closing Neo4j connection...");
         return this.driver.close();
     }
 
+    // Método para obtener el driver, que se compartirá entre varias sesiones
     public getDriver(): Driver {
         return this.driver;
     }
 
-    // Nuevo método para obtener una sesión
-    public getSession(): Session {
-        return this.driver.session();
+    // Método para crear una nueva sesión cada vez que se necesite
+    public createSession(): Session {
+        return this.driver.session(); // Crear y devolver una nueva sesión
     }
 }

@@ -2,8 +2,33 @@ import db from "../models/index.model";
 import { Evaluado } from "../models/evaluado.model";
 import { v4 as uuidv4 } from "uuid";
 
+export const evaluadorEvaluadoSrv = async (
+  id_evaluador: string,
+  id_evaluado: string
+): Promise<boolean | undefined> => {
+  try {
+    const evaluador = await db.evaluador.getEvaluadorById(id_evaluador);
+    const evaluado = await db.evaluado.getEvaluadoById(id_evaluado);
+    if (!evaluador || !evaluado) {
+      return false;
+    }
+
+    const link = await db.evaluador.linkEvaluadorToEvaluado(
+      id_evaluador,
+      id_evaluado
+    );
+    return link ? true : false;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const createEvaluadoSrv = async (
   name_evaluado: string,
+  telefono: number,
+  genero: string,
+  estado_cibil: string,
+  email_institucional: string,
   rol: string,
   carrera: string
 ): Promise<string | undefined> => {
@@ -13,15 +38,29 @@ export const createEvaluadoSrv = async (
     if (exist) {
       return "ID exist";
     } else {
+      /**{
+        id_evaluado,
+        name_evaluado,
+        telefono,
+        genero,
+        estado_cibil,
+        email_institucional,
+        rol,
+        carrera,
+      }**/
       const evaluado: Evaluado = {
         id_evaluado: uuid,
         name_evaluado,
+        telefono,
+        genero,
+        estado_cibil,
+        email_institucional,
         rol,
         carrera,
       };
       const creado = await db.evaluado.createEvaluado(evaluado);
       if (creado && creado.id_evaluado) {
-        return "Evaluado created: " + creado.id_evaluado;
+        return creado.id_evaluado;
       } else {
         return "Evaluado no created";
       }
@@ -31,9 +70,23 @@ export const createEvaluadoSrv = async (
   }
 };
 
-export const getEvaluadoSrv = async (): Promise<Evaluado[] | undefined> => {
+export const getEvaluadoSrv = async (
+  search?: string,
+  carrera?: string,
+  rol?: string
+): Promise<Evaluado[] | undefined> => {
   try {
-    return await db.evaluado.getEvaluados();
+    return await db.evaluado.getEvaluados(search, carrera, rol);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const getEvaluadosForRespSrv = async (
+  texto: string
+): Promise<Evaluado[] | undefined> => {
+  try {
+    return await db.evaluado.getEvaluadosForResp(texto);
   } catch (error) {
     console.log(error);
   }
