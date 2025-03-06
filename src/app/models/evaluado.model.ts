@@ -37,6 +37,7 @@ export class EvaluadoModel {
 
     try {
       const result = await session.run(query, evaluado);
+      console.log(result.records[0].get("s"))
       return result.records.length
         ? result.records[0].get("s").properties
         : undefined;

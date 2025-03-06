@@ -35,7 +35,6 @@ export const createRespuestaSrv = async (
         tipologia,
       };
       const creada = await db.respuesta.createRespuesta(respuesta);
-      console.log(texto,pregunta)
       const relacion = await db.respuesta.createRespPreg(texto,pregunta)
       if (creada && creada.id_respuesta) {
         return creada.id_respuesta;

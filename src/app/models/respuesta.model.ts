@@ -43,7 +43,6 @@ export class RespuestaModel {
       RETURN r
     `;
     try {
-      console.log(respuesta)
       const result = await session.run(query, respuesta);
       return result.records.length ? result.records[0].get("r").properties : undefined;
     } catch (error) {

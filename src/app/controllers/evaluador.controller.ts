@@ -9,12 +9,14 @@ export const createModelForm = async (req: Request, res: Response): Promise<void
   const { formulario } = req.body; //formulario:[texto:"dsad",categoria:"dads",respuestas:[texto:"dsa",tipologia:"das"]]
   try {
     const newPregunta = await Promise.all(formulario.map(async(pregunta:any)=>{
-      const pregunta1 = await createPreguntaSrv(pregunta.texto,pregunta.categoria);
+      const newPregunta = await createPreguntaSrv(pregunta.texto,pregunta.categoria);
       const newRespuestas = await Promise.all(pregunta.respuestas.map((respuesta:any)=>{
-        createRespuestaSrv(respuesta.texto,respuesta.tipologia,pregunta.texto)
+        const newRespuesta = createRespuestaSrv(respuesta.texto,respuesta.tipologia,pregunta.texto);
+        return newRespuesta;
       }));
+      return {newPregunta, newRespuestas};
     }));
-    const result = {newPregunta}
+    const result = newPregunta
     res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Error creating Evaluador" });
