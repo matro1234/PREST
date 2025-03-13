@@ -7,18 +7,25 @@ import { createPreguntaSrv } from "../services/pregunta.service";
 import { createRespuestaSrv } from "../services/respuesta.service";
 
 export const createModelForm = async (req: Request, res: Response): Promise<void> => {
+  const {id_evaluador} = req.params;
   const { formulario } = req.body; //formulario:[texto:"dsad",categoria:"dads",respuestas:[texto:"dsa",tipologia:"das"]]
+  
+  const evaluador = await getEvaluadorByIdSrv(id_evaluador)
   try {
-    const newPregunta = await Promise.all(formulario.map(async(pregunta:any)=>{
-      const newPregunta = await createPreguntaSrv(pregunta.texto,pregunta.categoria);
-      const newRespuestas = await Promise.all(pregunta.respuestas.map((respuesta:any)=>{
-        const newRespuesta = createRespuestaSrv(respuesta.texto,respuesta.tipologia,pregunta.texto);
-        return newRespuesta;
+    if(evaluador.rol === "admin"{
+      const newPregunta = await Promise.all(formulario.map(async(pregunta:any)=>{
+        const newPregunta = await createPreguntaSrv(pregunta.texto,pregunta.categoria);
+        const newRespuestas = await Promise.all(pregunta.respuestas.map((respuesta:any)=>{
+          const newRespuesta = createRespuestaSrv(respuesta.texto,respuesta.tipologia,pregunta.texto);
+          return newRespuesta;
+        }));
+        return {newPregunta, newRespuestas};
       }));
-      return {newPregunta, newRespuestas};
-    }));
-    const result = newPregunta
-    res.status(201).json(result);
+      const result = newPregunta
+      res.status(201).json(result);
+    }else{
+      res.status(201).json({success:false,message:"El usuario no tiene los permisos"});
+    }
   } catch (error) {
     res.status(500).json({ error: "Error creating Evaluador" });
   }
