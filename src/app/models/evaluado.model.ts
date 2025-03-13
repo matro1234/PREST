@@ -68,16 +68,16 @@ export class EvaluadoModel {
       await session.close(); // Cerrar la sesión
     }
   }
-  async getEvaluadosForResp(texto: string) {
+  async getEvaluadosForResp(id_respuesta: string) {
     const query = `
-      MATCH (e:Evaluado)-[:RESPONDIO]->(r:Respuesta {texto: $texto})
+      MATCH (e:Evaluado)-[:RESPONDIO]->(r:Respuesta {id_respuesta: $id_respuesta})
       RETURN e
     `;
 
     const session: Session = this.driver.session(); // Crear una nueva sesión
 
     try {
-      const result = await session.run(query, { texto });
+      const result = await session.run(query, { id_respuesta });
       return result.records.length
         ? result.records.map((evaluado: any) => evaluado.get("e").properties)
         : undefined;
