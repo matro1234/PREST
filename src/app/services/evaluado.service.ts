@@ -76,7 +76,16 @@ export const getEvaluadoSrv = async (
   rol?: string
 ): Promise<Evaluado[] | undefined> => {
   try {
-    return await db.evaluado.getEvaluados(search, carrera, rol);
+    const evaluados = await db.evaluado.getEvaluados(search, carrera, rol);
+    const result = await Promise.all(evaluados.map((evaluado:any)=>{
+      const apostol = getTipoRespSrv(evaluado.id_evaluado, "apostol")||[];
+      const reen = getTipoRespSrv(evaluado.id_evaluado, "reen")||[];
+      const mercenario = getTipoRespSrv(evaluado.id_evaluado, "mercenario")||[];
+      const terrorista = getTipoRespSrv(evaluado.id_evaluado, "terrorista")||[];
+      const maxArray = arrays.reduce((max, current) => (current.length > max.length ? current : max), []);
+      return {evaluado, maxArra[0].tipologia};
+    }));
+    return result
   } catch (error) {
     console.log(error);
   }
