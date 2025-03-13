@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   createEvaluadorSrv,
+  getEvaluadorByIdSrv,
 } from "../services/evaluador.service";
 import { createPreguntaSrv } from "../services/pregunta.service";
 import { createRespuestaSrv } from "../services/respuesta.service";
@@ -25,9 +26,22 @@ export const createModelForm = async (req: Request, res: Response): Promise<void
 
 export const createEvaluador = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const {name_evaluador,email,password,rol,area} = req.body;
+    const {name_evaluador,email,password,area} = req.body;
 
-    const result = await createEvaluadorSrv(name_evaluador,password,email,rol,area)
+    const result = await createEvaluadorSrv(name_evaluador,password,email,"viewer",area);
+
+    return res.status(201).json({ success: true, result });
+  } catch (error:any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const createEvaluadorAdmin = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const {id_evaluador} = req.params;
+    const {name_evaluador,email,password,area} = req.body;
+    const evaluador = await getEvaluadorByIdSrv(id_evaluador);
+    const result = await createEvaluadorSrv(name_evaluador,password,email,"admin",area);
 
     return res.status(201).json({ success: true, result });
   } catch (error:any) {
