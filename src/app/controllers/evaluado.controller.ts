@@ -29,9 +29,21 @@ export const getEvaluadosForResp = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { texto } = req.body;
+  const { id_respuesta } = req.body;
   try {
-    const result = await getEvaluadosForRespSrv(texto)
+    const result = await getEvaluadosForRespSrv(id_respuesta)
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Error al encontrar evaluados" });
+  }
+};
+
+export const getResp = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const result = await getRespSrv()
     res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: "Error al encontrar evaluados" });
