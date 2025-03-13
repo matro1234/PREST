@@ -6,7 +6,7 @@ import {
   getEvaluadosForRespSrv,
 } from "../services/evaluado.service";
 import { getTipoRespSrv } from "../services/respuesta.service";
-import { linkEvaluadoToRespuestaSrv } from "../services/evaluador.service";
+import { linkEvaluadoToRespuestaSrv, getEvaluadorByIdSrv } from "../services/evaluador.service";
 
 export const getRespTipo = async (
   req: Request,
@@ -67,28 +67,33 @@ export const createEvaluadoRespuesta = async (
   const { evaluado, text_respuestas } = req.body; //evaluado:{name_eva}
   const { name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera } = evaluado;
   try {
-    const newEvaluado = await createEvaluadoSrv(name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera);
-    console.log(newEvaluado);
-    if (newEvaluado) {
-      const evaluadorEvaluado = await evaluadorEvaluadoSrv(
-        id_evaluador,
-        newEvaluado
-      );
-      if (evaluadorEvaluado) {
-        const result = await Promise.all(
-          text_respuestas.map((text: string) =>
-            linkEvaluadoToRespuestaSrv(name_evaluado as string, text)
-          )
+    const evaluador = await getEvaluadorByIdSrv(id_evaluador);
+    if (evaluador.rol === "admin"){
+      const newEvaluado = await createEvaluadoSrv(name_evaluado, telefono, genero, estado_cibil, email_institucional, rol, carrera);
+      console.log(newEvaluado);
+      if (newEvaluado) {
+        const evaluadorEvaluado = await evaluadorEvaluadoSrv(
+          id_evaluador,
+          newEvaluado
         );
-        if (result) {
-          return res.status(201).json({mensaje:"El evaluado se registro correctamente"});
+        if (evaluadorEvaluado) {
+          const result = await Promise.all(
+            text_respuestas.map((text: string) =>
+              linkEvaluadoToRespuestaSrv(name_evaluado as string, text)
+            )
+          );
+          if (result) {
+            return res.status(201).json({mensaje:"El evaluado se registro correctamente"});
+          }
+          return res.status(400).json({mensaje:"no se logro crear el evaluado"});
+        } else {
+          return res.status(400).json({mensaje:"no se logro crear el evaluado"});
         }
-        return res.status(400).json({mensaje:"no se logro crear el evaluado"});
-      } else {
+      }else{
         return res.status(400).json({mensaje:"no se logro crear el evaluado"});
       }
     }else{
-      return res.status(400).json({mensaje:"no se logro crear el evaluado"});
+      return res.status(400).json({mensaje:"usuario no autorizado"});
     }
   } catch (error) {
     return res.status(500).json({ error: "Error creating Evaluador" });
