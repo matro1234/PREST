@@ -92,10 +92,10 @@ export const getEvaluadoSrv = async (
 };
 
 export const getEvaluadosForRespSrv = async (
-  texto: string
+  id_respuesta: string
 ): Promise<Evaluado[] | undefined> => {
   try {
-    return await db.evaluado.getEvaluadosForResp(texto);
+    return await db.evaluado.getEvaluadosForResp(id_respuesta);
   } catch (error) {
     console.log(error);
   }
