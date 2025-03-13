@@ -18,6 +18,16 @@ export const getTipoRespSrv = async (
   }
 };
 
+export const getRespSrv = async (): Promise<string | undefined> => {
+  try {
+    const result = await db.respuesta.getRespuestas();
+    return result
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
 export const createRespuestaSrv = async (
   texto: string,
   tipologia: string,
